@@ -1,155 +1,161 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Loader2, Activity, Target, AlertTriangle } from 'lucide-react';
-import {
-  LineChart, Line, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
+import { ArrowLeft, Loader2, Activity, Target, AlertTriangle, FileText, Dumbbell, Apple, Calendar, ChevronRight } from 'lucide-react';
 
 export default function ClientProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { authFetch } = useAuth();
   const [data, setData] = useState(null);
+  const [routines, setRoutines] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    (async () => {
       try {
-        const res = await authFetch(`http://localhost:5000/api/clients/${id}`);
-        if (res.ok) {
-          const profileData = await res.json();
-          setData(profileData);
-        }
+        const [profileRes, routinesRes] = await Promise.all([
+          authFetch(`http://localhost:5000/api/clients/${id}`),
+          authFetch(`http://localhost:5000/api/clients/${id}/routines`)
+        ]);
+        if (profileRes.ok) setData(await profileRes.json());
+        if (routinesRes.ok) setRoutines(await routinesRes.json());
       } catch (err) {
         console.error("Error fetching client profile:", err);
       } finally {
         setLoading(false);
       }
-    };
-    fetchProfile();
+    })();
   }, [id, authFetch]);
 
-  if (loading) return <div className="flex-center" style={{ height: '100%' }}><Loader2 className="animate-spin" size={48} /></div>;
-  if (!data?.user) return <div className="flex-center" style={{ height: '100%' }}><h3>Cliente no encontrado</h3></div>;
+  if (loading) return <div className="page flex-center" style={{ minHeight: '60vh' }}><Loader2 className="animate-spin" size={48} color="var(--brand)" /></div>;
+  if (!data?.user) return <div className="page flex-center"><h3>Cliente no encontrado</h3></div>;
 
   const { user, state } = data;
   const current = state?.current_state || {};
   const profile = state?.profile_info || {};
-
-  const weightHistory = state?.history?.map(h => ({ semana: `Sem ${h.week}`, peso: h.peso })) || [];
   
-  const adherenceHistory = state?.history?.map(h => ({ semana: `Sem ${h.week}`, adherencia: Math.round(h.adherencia * 100) })) || [];
-
-  const strengthData = [
-    { subject: 'Squat', A: state?.exercise_history?.max_estimates?.Squat || 100, fullMark: 150 },
-    { subject: 'Bench', A: state?.exercise_history?.max_estimates?.Bench || 80, fullMark: 150 },
-    { subject: 'Deadlift', A: state?.exercise_history?.max_estimates?.Deadlift || 120, fullMark: 150 },
-    { subject: 'OHP', A: state?.exercise_history?.max_estimates?.OHP || 50, fullMark: 150 },
-  ];
+  const activeRoutine = routines.find(r => r.estado === 'activa' || r.estado === 'aprobada') || routines[0];
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
-      <Link to="/trainer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-accent)', textDecoration: 'none', marginBottom: '1.5rem', fontWeight: 'bold' }}>
-         <ArrowLeft size={20} /> Volver al Dashboard
-      </Link>
+    <div className="page anim-fade-up">
+      <button className="btn-ghost btn-sm" onClick={() => navigate('/trainer')} style={{ marginBottom: 'var(--s4)', border: 'none', padding: 0 }}>
+         <ArrowLeft size={16} /> Volver a Clientes
+      </button>
 
-      <header className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: '250px' }}>
-          <h1 className="text-gradient" style={{ margin: 0, fontSize: '2.5rem' }}>{user.nombre}</h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', marginTop: '0.5rem' }}>
-            Objetivo: <strong style={{color:'white'}}>{profile.objetivo || 'No definido'}</strong> • 
-            {profile.experiencia || 'Principiante'}
-          </p>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap:'wrap' }}>
-            {current.flags?.map(f => (
-               <span key={f} style={{ background: 'rgba(255,0,0,0.2)', color: '#ff6b6b', padding: '0.3rem 0.8rem', borderRadius: '12px', fontSize: '0.875rem' }}>
-                 <AlertTriangle size={14} style={{ display: 'inline', marginRight:'4px' }}/>{f}
-               </span>
-            ))}
+      {/* ── Wow Header ── */}
+      <header className="card" style={{ padding: '0', overflow: 'hidden', marginBottom: 'var(--s6)', background: 'var(--bg-raised)', border: 'none' }}>
+        <div style={{ background: 'linear-gradient(135deg, rgba(255,90,0,0.15) 0%, transparent 100%)', padding: 'var(--s6) var(--s6) var(--s4)' }}>
+          <div className="flex justify-between items-start" style={{ flexWrap: 'wrap', gap: 'var(--s4)' }}>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 style={{ fontSize: '2.5rem', lineHeight: 1, margin: 0 }}>{user.nombre}</h1>
+                {(current.riesgo_abandono > 0.5) && <span className="badge badge-red"><AlertTriangle size={12}/> Riesgo Alto</span>}
+              </div>
+              <p className="color-muted text-lg">
+                Objetivo: <strong className="color-brand">{profile.objetivo || 'Recomposición'}</strong> • 
+                {profile.experiencia || 'Intermedio'} • Semana {current.week || 1}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Link to={`/trainer/clients/${id}/plan`} className="btn btn-primary btn-lg" style={{ height: 50, padding: '0 24px' }}>
+                 Diseñar Plan Estratégico →
+              </Link>
+            </div>
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: '2rem', flexWrap:'wrap' }}>
-           <div className="text-center">
-             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>SEMANA ACTUAL</div>
-             <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--color-accent)' }}>{current.week || 1}</div>
-           </div>
-           <div className="text-center">
-             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>PESO ACTUAL</div>
-             <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'white' }}>{current.peso || '--'} <span style={{fontSize:'1rem'}}>kg</span></div>
-           </div>
-           <div className="text-center">
-             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>ADHERENCIA</div>
-             <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--color-secondary)' }}>
-               {Math.round((current.adherencia_promedio || 0) * 100)}<span style={{fontSize:'1rem'}}>%</span>
-             </div>
-           </div>
+        
+        {/* Quick Stats Strip */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1px', background: 'var(--border)' }}>
+          {[
+            { label: 'Peso Actual', val: `${current.peso || '--'} kg` },
+            { label: 'Adherencia', val: `${Math.round((current.adherencia_promedio || 0) * 100)}%`, color: 'var(--green)' },
+            { label: 'Fatiga', val: `${current.fatiga_ultima || '--'}/10`, color: current.fatiga_ultima >= 7 ? 'var(--red)' : '' },
+            { label: 'TDEE Objetivo', val: `${current.tdee_adjusted || '--'} kcal` }
+          ].map((s, i) => (
+            <div key={i} style={{ background: 'var(--bg-raised)', padding: 'var(--s4)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: s.color || 'var(--text-primary)', marginTop: 4 }}>{s.val}</div>
+            </div>
+          ))}
         </div>
       </header>
 
-      <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-         <Activity color="var(--color-accent)" /> Rendimiento y Gráficas
-      </h2>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {/* Progreso de Peso */}
-        <div className="glass-panel" style={{ padding: '1.5rem', height: '350px' }}>
-          <h4>Evolución de Peso (kg)</h4>
-          <ResponsiveContainer width="100%" height="90%">
-            <LineChart data={weightHistory}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="semana" stroke="#888" />
-              <YAxis domain={['dataMin - 2', 'dataMax + 2']} stroke="#888" />
-              <Tooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#333' }} />
-              <Legend />
-              <Line type="monotone" dataKey="peso" stroke="var(--color-accent)" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Adherencia */}
-        <div className="glass-panel" style={{ padding: '1.5rem', height: '350px' }}>
-          <h4>Adherencia Semanal (%)</h4>
-          <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={adherenceHistory}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="semana" stroke="#888" />
-              <YAxis domain={[0, 100]} stroke="#888" />
-              <Tooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#333' }} />
-              <Legend />
-              <Bar dataKey="adherencia" fill="var(--color-secondary)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Radar de Fuerza */}
-        <div className="glass-panel" style={{ padding: '1.5rem', height: '350px' }}>
-          <h4>Perfil de Fuerza (RM Estimado)</h4>
-          <ResponsiveContainer width="100%" height="90%">
-            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={strengthData}>
-              <PolarGrid stroke="#444" />
-              <PolarAngleAxis dataKey="subject" stroke="#aaa" />
-              <PolarRadiusAxis stroke="#666" />
-              <Radar name="RM Estimado" dataKey="A" stroke="var(--color-primary)" fill="var(--color-primary)" fillOpacity={0.6} />
-              <Tooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#333' }} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--s4)' }}>
         
-        {/* Perfil Físico */}
-        <div className="glass-panel" style={{ padding: '1.5rem', height: '350px', overflowY: 'auto' }}>
-          <h4>Datos Fisiológicos Diarios</h4>
-          <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-             <li className="flex-between"><span>Fatiga Última (1-10)</span> <strong style={{color:'white'}}>{current.fatiga_ultima || '--'}</strong></li>
-             <li className="flex-between"><span>Estrés</span> <strong style={{color:'white'}}>{current.estres || '--'}</strong></li>
-             <li className="flex-between"><span>Dolor Muscular</span> <strong style={{color:'white'}}>{current.dolor_muscular || '--'}</strong></li>
-             <li className="flex-between"><span>Horas Sueño Promedio</span> <strong style={{color:'white'}}>{current.horas_sueno || '--'} hrs</strong></li>
-             <li className="flex-between"><span>Calorías TDEE</span> <strong style={{color:'white'}}>{current.tdee_adjusted || '--'} kcal</strong></li>
-             <li className="flex-between"><span>Disponibilidad</span> <strong style={{color:'white'}}>{profile.dias_disponibles || '--'} días/sem</strong></li>
-             <li className="flex-between"><span>Equipamiento</span> <strong style={{color:'white', textTransform:'capitalize'}}>{profile.equipamiento || '--'}</strong></li>
-          </ul>
+        {/* ── Seguimiento de Rutina ── */}
+        <div className="card flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="flex items-center gap-2"><Dumbbell color="var(--brand)"/> Entrenamiento Activo</h3>
+            <Link to={`/trainer/clients/${id}/plan`} className="text-sm color-brand font-bold">Editar Plan</Link>
+          </div>
+          
+          {activeRoutine ? (
+            <div>
+              <div style={{ background: 'var(--brand-dim)', padding: 'var(--s3)', borderRadius: 'var(--r-sm)', marginBottom: 'var(--s4)' }}>
+                <strong>{activeRoutine.plan?.split_name || 'Rutina Personalizada'}</strong>
+                <p className="text-sm color-muted mt-1">{activeRoutine.plan?.bloque_semanas || 4} Semanas • {activeRoutine.plan?.dias_totales || '?'} días/semana</p>
+              </div>
+              <div className="flex-col gap-2">
+                {activeRoutine.plan?.dias?.map((d, i) => (
+                  <div key={i} className="list-item" style={{ padding: 'var(--s3)', borderRadius: 'var(--r-sm)' }}>
+                    <div style={{ flex: 1 }}>
+                      <strong className="text-sm">Día {d.dia}: {d.nombre}</strong>
+                      <div className="text-xs color-muted mt-1">{d.ejercicios?.length} ejercicios ({d.musculos_foco?.join(', ')})</div>
+                    </div>
+                    {/* Placeholder progresion */}
+                    <div style={{ width: 100, height: 6, background: 'var(--bg-input)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: '0%', height: '100%', background: 'var(--green)' }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex-center flex-col text-center" style={{ flex: 1, padding: 'var(--s6)', background: 'var(--bg-raised)', border: '1px dashed var(--border)', borderRadius: 'var(--r-md)' }}>
+              <Dumbbell size={32} color="var(--text-muted)" className="mb-3" />
+              <p className="color-muted mb-4">El cliente no tiene una rutina activa estructurada en este momento.</p>
+              <Link to={`/trainer/clients/${id}/plan`} className="btn btn-primary btn-sm">Asignar Rutina</Link>
+            </div>
+          )}
         </div>
+
+        {/* ── Seguimiento Nutricional ── */}
+        <div className="card flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="flex items-center gap-2"><Apple color="var(--green)"/> Nutrición y Macros</h3>
+            <Link to={`/trainer/clients/${id}/plan`} className="text-sm color-green font-bold">Ajustar</Link>
+          </div>
+          
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
+             <div style={{ padding: 'var(--s4)', background: 'var(--green-dim)', borderRadius: 'var(--r-sm)' }}>
+               <div className="text-xs color-green font-bold mb-1">OBJETIVO DIARIO</div>
+               <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+                 {current.tdee_adjusted || '--'} <span className="text-sm color-muted font-body">kcal</span>
+               </div>
+             </div>
+
+             <div className="flex-col gap-3">
+               <div>
+                  <div className="flex justify-between text-sm mb-1"><span>Proteína</span> <span className="font-bold">140g / 180g</span></div>
+                  <div className="progress-track"><div className="progress-bar progress-bar--green" style={{ width: '75%' }}></div></div>
+               </div>
+               <div>
+                  <div className="flex justify-between text-sm mb-1"><span>Carbohidratos</span> <span className="font-bold">200g / 250g</span></div>
+                  <div className="progress-track"><div className="progress-bar progress-bar--brand" style={{ width: '80%' }}></div></div>
+               </div>
+               <div>
+                  <div className="flex justify-between text-sm mb-1"><span>Grasas</span> <span className="font-bold">50g / 65g</span></div>
+                  <div className="progress-track"><div className="progress-bar" style={{ width: '60%', background: 'var(--amber)' }}></div></div>
+               </div>
+             </div>
+
+             <div className="mt-auto pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+               <p className="text-sm color-muted"><AlertTriangle size={14} style={{ display: 'inline', marginRight: 4 }} color="var(--amber)"/> Requiere adaptación cultural basada en cuestionario: {profile.estilo_vida}</p>
+             </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

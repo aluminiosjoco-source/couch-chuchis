@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Lock, Calendar, Ruler, Target, Dumbbell, Clock, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { 
+  X, User, Mail, Lock, Calendar, Ruler, Target, Dumbbell, 
+  Clock, AlertCircle, Plus, Trash2, Heart, Zap, Coffee, 
+  ChevronRight, ChevronLeft, Phone, Briefcase, Activity, Scale
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const OBJETIVOS = [
@@ -8,12 +12,13 @@ const OBJETIVOS = [
   { value: 'fuerza', label: '🏋️ Fuerza' },
   { value: 'recomposicion', label: '⚖️ Recomposición' },
   { value: 'rendimiento', label: '🏃 Rendimiento' },
+  { value: 'rehabilitacion', label: '🩹 Rehabilitación' },
 ];
 
 const EXPERIENCIA = [
-  { value: 'principiante', label: 'Principiante (0-1 año)' },
-  { value: 'intermedio', label: 'Intermedio (1-3 años)' },
-  { value: 'avanzado', label: 'Avanzado (+3 años)' },
+  { value: 'principiante', label: 'Principiante' },
+  { value: 'intermedio', label: 'Intermedio' },
+  { value: 'avanzado', label: 'Avanzado' },
 ];
 
 const EQUIPAMIENTO = [
@@ -23,55 +28,102 @@ const EQUIPAMIENTO = [
   { value: 'sin_equipo', label: '🧘 Sin equipo' },
 ];
 
+const ESTILO_VIDA = [
+  { value: 'sedentario', label: '🛋️ Sedentario' },
+  { value: 'activo', label: '🚶 Activo' },
+  { value: 'muy_activo', label: '🔥 Muy activo' },
+];
+
 const EMPTY_FORM = {
-  nombre: '', email: '', password: '', edad: '', altura_cm: '',
+  nombre: '', email: '', password: '', edad: '', altura_cm: '', peso_inicial: '',
+  telefono: '', ocupacion: '', meta_especifica: '', tiempo_objetivo: '',
   objetivo: 'hipertrofia', experiencia: 'principiante',
-  dias_disponibles: 4, equipamiento: 'gym',
-  limitaciones: [], restricciones_alimentarias: [],
+  dias_disponibles: 4, tiempo_sesion: '60 min', horario_preferido: 'Mañana',
+  equipamiento: 'gym', tipo_entrenamiento_preferido: 'pesas',
+  limitaciones: [], lesiones_pasadas: '', dolor_frecuente: '', condicion_medica: '',
+  estilo_vida: 'sedentario', horas_sueno: '7-8', nivel_estres: 'medio',
+  comidas_dia: 3, restricciones_alimentarias: [], alcohol: 'no',
+  ejercicios_disgusto: '', motivacion_principal: '', nivel_compromiso: 'medio',
+  porcentaje_grasa_inicial: '', medida_cintura: '', medida_cadera: '',
+  observaciones_posturales: '', notas_entrenador: ''
 };
+
+const TABS = [
+  { id: 'basicos', label: 'Personal', icon: <User size={16}/> },
+  { id: 'salud', label: 'Salud', icon: <Heart size={16}/> },
+  { id: 'lifestyle', label: 'Hábitos', icon: <Coffee size={16}/> },
+  { id: 'fitness', label: 'Fitness', icon: <Zap size={16}/> },
+  { id: 'medidas', label: 'Medidas', icon: <Scale size={16}/> },
+];
 
 export default function ClientFormModal({ client, onClose, onSuccess }) {
   const { authFetch } = useAuth();
   const isEditing = !!client;
 
   const [form, setForm] = useState(EMPTY_FORM);
-  const [newLimitacion, setNewLimitacion] = useState('');
-  const [newRestriccion, setNewRestriccion] = useState('');
+  const [newTag, setNewTag] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('basicos');
 
-  // Pre-fill when editing
   useEffect(() => {
     if (isEditing && client) {
-      setForm({
-        nombre: client.nombre || '',
-        email: client.email || '',
-        password: '',
-        edad: client.edad || '',
-        altura_cm: client.altura_cm || '',
-        objetivo: client.profile?.objetivo || 'hipertrofia',
-        experiencia: client.profile?.experiencia || 'principiante',
-        dias_disponibles: client.profile?.dias_disponibles || 4,
-        equipamiento: client.profile?.equipamiento || 'gym',
-        limitaciones: client.profile?.limitaciones || [],
-        restricciones_alimentarias: client.profile?.restricciones_alimentarias || [],
-      });
+      const fetchFull = async () => {
+        try {
+          setLoading(true);
+          const res = await authFetch(`http://localhost:5000/api/clients/${client.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            const p = data.profile || {};
+            setForm({
+              nombre: data.user?.nombre || client.nombre || '',
+              email: data.user?.email || client.email || '',
+              password: '',
+              edad: data.user?.edad || client.edad || '',
+              altura_cm: data.user?.altura_cm || client.altura_cm || '',
+              peso_inicial: p.peso_inicial || '',
+              telefono: p.telefono || '',
+              ocupacion: p.ocupacion || '',
+              meta_especifica: p.meta_especifica || '',
+              tiempo_objetivo: p.tiempo_objetivo || '',
+              objetivo: p.objetivo || 'hipertrofia',
+              experiencia: p.experiencia || 'principiante',
+              dias_disponibles: p.dias_disponibles || 4,
+              tiempo_sesion: p.tiempo_sesion || '60 min',
+              horario_preferido: p.horario_preferido || 'Mañana',
+              equipamiento: p.equipamiento || 'gym',
+              tipo_entrenamiento_preferido: p.tipo_entrenamiento_preferido || 'pesas',
+              limitaciones: p.limitaciones || [],
+              lesiones_pasadas: p.lesiones_pasadas || '',
+              dolor_frecuente: p.dolor_frecuente || '',
+              condicion_medica: p.condicion_medica || '',
+              estilo_vida: p.estilo_vida || 'sedentario',
+              horas_sueno: p.horas_sueno || '7-8',
+              nivel_estres: p.nivel_estres || 'medio',
+              comidas_dia: p.comidas_dia || 3,
+              restricciones_alimentarias: p.restricciones_alimentarias || [],
+              alcohol: p.alcohol || 'no',
+              ejercicios_disgusto: p.ejercicios_disgusto || '',
+              motivacion_principal: p.motivacion_principal || '',
+              nivel_compromiso: p.nivel_compromiso || 'medio',
+              porcentaje_grasa_inicial: p.porcentaje_grasa_inicial || '',
+              medida_cintura: p.medida_cintura || '',
+              medida_cadera: p.medida_cadera || '',
+              observaciones_posturales: p.observaciones_posturales || '',
+              notas_entrenador: p.notas_entrenador || ''
+            });
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchFull();
     }
-  }, [client, isEditing]);
+  }, [client, isEditing, authFetch]);
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }));
-
-  const addTag = (field, value, setter) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    if (!form[field].includes(trimmed)) {
-      set(field, [...form[field], trimmed]);
-    }
-    setter('');
-  };
-
-  const removeTag = (field, tag) => set(field, form[field].filter(t => t !== tag));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +136,6 @@ export default function ClientFormModal({ client, onClose, onSuccess }) {
 
       let res;
       if (isEditing) {
-        // Actualizar datos básicos
         res = await authFetch(`http://localhost:5000/api/clients/${client.id}`, {
           method: 'PUT',
           body: JSON.stringify({
@@ -92,16 +143,10 @@ export default function ClientFormModal({ client, onClose, onSuccess }) {
             edad: payload.edad, altura_cm: payload.altura_cm,
           }),
         });
-        // Actualizar perfil fitness por separado
         if (res.ok) {
           await authFetch(`http://localhost:5000/api/clients/${client.id}/profile`, {
             method: 'PUT',
-            body: JSON.stringify({
-              objetivo: payload.objetivo, experiencia: payload.experiencia,
-              dias_disponibles: payload.dias_disponibles, equipamiento: payload.equipamiento,
-              limitaciones: payload.limitaciones,
-              restricciones_alimentarias: payload.restricciones_alimentarias,
-            }),
+            body: JSON.stringify(payload),
           });
         }
       } else {
@@ -126,167 +171,244 @@ export default function ClientFormModal({ client, onClose, onSuccess }) {
   const inputStyle = {
     width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: 'white',
-    fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box',
+    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
   };
-  const labelStyle = { display: 'block', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginBottom: '0.4rem', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase' };
-  const tabBtnStyle = (active) => ({
-    padding: '0.5rem 1.2rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem',
-    background: active ? 'var(--color-accent)' : 'rgba(255,255,255,0.06)',
-    color: active ? 'white' : 'var(--color-text-muted)',
-    transition: 'all 0.2s',
-  });
-
+  const labelStyle = { display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.75rem', marginBottom: '0.4rem', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase' };
+  
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', position: 'relative' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div>
-            <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.6rem' }}>
-              {isEditing ? '✏️ Editar Cliente' : '➕ Nuevo Cliente'}
-            </h2>
-            <p style={{ color: 'var(--color-text-muted)', margin: '0.25rem 0 0', fontSize: '0.85rem' }}>
-              {isEditing ? `Modificando: ${client.nombre}` : 'Registro y perfil fitness inicial'}
-            </p>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(8px)' }}>
+      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '700px', maxHeight: '95vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', border: '1px solid rgba(255,255,255,0.1)' }}>
+        
+        {/* Header Fixed */}
+        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.5rem' }}>
+                {isEditing ? '✏️ Expediente de Cliente' : '🚀 Nueva Entrevista Inicial'}
+              </h2>
+            </div>
+            <button onClick={onClose} className="btn-icon" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <X size={20} />
+            </button>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '50%', padding: '0.5rem', display: 'flex' }}>
-            <X size={20} />
-          </button>
+          
+          {/* Navigation Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', overflowX: 'auto', paddingBottom: '4px' }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} 
+                style={{ 
+                  display:'flex', alignItems:'center', gap:'8px', padding: '0.6rem 1rem', borderRadius: '10px', whiteSpace: 'nowrap',
+                  background: activeTab === t.id ? 'var(--color-accent)' : 'rgba(255,255,255,0.04)',
+                  color: activeTab === t.id ? 'white' : 'var(--color-text-muted)',
+                  border: 'none', cursor: 'pointer', transition: '0.2s', fontSize: '0.8rem', fontWeight: 600
+                }}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          <button style={tabBtnStyle(activeTab === 'basicos')} onClick={() => setActiveTab('basicos')}>📋 Datos Básicos</button>
-          <button style={tabBtnStyle(activeTab === 'fitness')} onClick={() => setActiveTab('fitness')}>💪 Perfil Fitness</button>
-        </div>
-
-        {error && (
-          <div style={{ background: 'rgba(255,50,50,0.15)', border: '1px solid rgba(255,50,50,0.3)', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#ff6b6b', fontSize: '0.9rem' }}>
-            <AlertCircle size={16} /> {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          {/* ── Tab: Datos Básicos ── */}
-          {activeTab === 'basicos' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-              <div>
-                <label style={labelStyle}><User size={12} style={{ display: 'inline', marginRight: '4px' }} />Nombre completo</label>
-                <input style={inputStyle} value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Ej: Juan Pérez" required />
-              </div>
-              <div>
-                <label style={labelStyle}><Mail size={12} style={{ display: 'inline', marginRight: '4px' }} />Email</label>
-                <input style={inputStyle} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="juan@ejemplo.com" required />
-              </div>
-              {!isEditing && (
-                <div>
-                  <label style={labelStyle}><Lock size={12} style={{ display: 'inline', marginRight: '4px' }} />Contraseña inicial</label>
-                  <input style={inputStyle} type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Mínimo 6 caracteres" required={!isEditing} minLength={6} />
-                </div>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={labelStyle}><Calendar size={12} style={{ display: 'inline', marginRight: '4px' }} />Edad (años)</label>
-                  <input style={inputStyle} type="number" value={form.edad} onChange={e => set('edad', e.target.value)} placeholder="28" min={12} max={80} required />
-                </div>
-                <div>
-                  <label style={labelStyle}><Ruler size={12} style={{ display: 'inline', marginRight: '4px' }} />Altura (cm)</label>
-                  <input style={inputStyle} type="number" value={form.altura_cm} onChange={e => set('altura_cm', e.target.value)} placeholder="175" min={100} max={230} required />
-                </div>
-              </div>
+        {/* Scrollable Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+          {error && (
+            <div style={{ background: 'rgba(255,50,50,0.1)', border: '1px solid rgba(255,50,50,0.2)', padding: '0.8rem', borderRadius: '10px', marginBottom: '1.5rem', color: '#ff6b6b', fontSize: '0.85rem', display: 'flex', gap: '8px' }}>
+              <AlertCircle size={16} /> {error}
             </div>
           )}
 
-          {/* ── Tab: Perfil Fitness ── */}
-          {activeTab === 'fitness' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-              <div>
-                <label style={labelStyle}><Target size={12} style={{ display: 'inline', marginRight: '4px' }} />Objetivo principal</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.5rem' }}>
-                  {OBJETIVOS.map(o => (
-                    <button key={o.value} type="button"
-                      onClick={() => set('objetivo', o.value)}
-                      style={{ padding: '0.65rem', borderRadius: '10px', border: `2px solid ${form.objetivo === o.value ? 'var(--color-accent)' : 'rgba(255,255,255,0.1)'}`, background: form.objetivo === o.value ? 'rgba(255,107,0,0.15)' : 'rgba(255,255,255,0.03)', color: 'white', cursor: 'pointer', fontSize: '0.85rem', fontWeight: form.objetivo === o.value ? '700' : '400', transition: 'all 0.2s' }}>
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Nivel de experiencia</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {EXPERIENCIA.map(e => (
-                    <button key={e.value} type="button"
-                      onClick={() => set('experiencia', e.value)}
-                      style={{ flex: 1, padding: '0.65rem', borderRadius: '10px', border: `2px solid ${form.experiencia === e.value ? 'var(--color-secondary)' : 'rgba(255,255,255,0.1)'}`, background: form.experiencia === e.value ? 'rgba(0,230,118,0.1)' : 'rgba(255,255,255,0.03)', color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: form.experiencia === e.value ? '700' : '400', transition: 'all 0.2s', textAlign: 'center' }}>
-                      {e.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={labelStyle}><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />Días disponibles/sem</label>
-                  <input style={inputStyle} type="number" value={form.dias_disponibles} onChange={e => set('dias_disponibles', parseInt(e.target.value))} min={1} max={7} />
+          <form id="interview-form" onSubmit={handleSubmit}>
+            {/* ── SECCIÓN: BÁSICOS ── */}
+            {activeTab === 'basicos' && (
+              <div className="animate-fade-in" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.5rem' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}><User size={12}/> Nombre Completo</label>
+                  <input style={inputStyle} value={form.nombre} onChange={e=>set('nombre', e.target.value)} required />
                 </div>
                 <div>
-                  <label style={labelStyle}><Dumbbell size={12} style={{ display: 'inline', marginRight: '4px' }} />Equipamiento</label>
-                  <select value={form.equipamiento} onChange={e => set('equipamiento', e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                    {EQUIPAMIENTO.map(eq => <option key={eq.value} value={eq.value} style={{ background: '#1a1a1a' }}>{eq.label}</option>)}
+                  <label style={labelStyle}><Mail size={12}/> Email</label>
+                  <input style={inputStyle} type="email" value={form.email} onChange={e=>set('email', e.target.value)} required />
+                </div>
+                <div>
+                  <label style={labelStyle}><Phone size={12}/> Teléfono</label>
+                  <input style={inputStyle} value={form.telefono} onChange={e=>set('telefono', e.target.value)} placeholder="000 000 0000" />
+                </div>
+                {!isEditing && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}><Lock size={12}/> Contraseña Temporal</label>
+                    <input style={inputStyle} type="password" value={form.password} onChange={e=>set('password', e.target.value)} required={!isEditing} />
+                  </div>
+                )}
+                <div>
+                  <label style={labelStyle}><Calendar size={12}/> Edad</label>
+                  <input style={inputStyle} type="number" value={form.edad} onChange={e=>set('edad', parseInt(e.target.value))} required />
+                </div>
+                <div>
+                  <label style={labelStyle}><Ruler size={12}/> Estatura (cm)</label>
+                  <input style={inputStyle} type="number" value={form.altura_cm} onChange={e=>set('altura_cm', parseInt(e.target.value))} required />
+                </div>
+                <div>
+                  <label style={labelStyle}><Scale size={12}/> Peso Actual (kg)</label>
+                  <input style={inputStyle} type="number" step="0.1" value={form.peso_inicial} onChange={e=>set('peso_inicial', parseFloat(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}><Briefcase size={12}/> Ocupación</label>
+                  <input style={inputStyle} value={form.ocupacion} onChange={e=>set('ocupacion', e.target.value)} />
+                </div>
+              </div>
+            )}
+
+            {/* ── SECCIÓN: SALUD ── */}
+            {activeTab === 'salud' && (
+              <div className="animate-fade-in" style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
+                <div>
+                  <label style={labelStyle}>Lesiones Pasadas / Cirugías</label>
+                  <textarea style={{...inputStyle, height:'80px', resize:'none'}} value={form.lesiones_pasadas} onChange={e=>set('lesiones_pasadas', e.target.value)} placeholder="Describe brevemente..."></textarea>
+                </div>
+                <div>
+                  <label style={labelStyle}>Dolores Frecuentes (Rodillas, Espalda, etc.)</label>
+                  <input style={inputStyle} value={form.dolor_frecuente} onChange={e=>set('dolor_frecuente', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Condiciones Médicas / Medicamentos</label>
+                  <input style={inputStyle} value={form.condicion_medica} onChange={e=>set('condicion_medica', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Limitaciones para la IA (Tags)</label>
+                  <div style={{ display:'flex', gap:'8px', marginBottom:'8px' }}>
+                    <input style={{...inputStyle, flex:1}} value={newTag} onChange={e=>setNewTag(e.target.value)} onKeyDown={e=>e.key==='Enter' && (e.preventDefault(), form.limitaciones.includes(newTag)||set('limitaciones', [...form.limitaciones, newTag.trim()]), setNewTag(''))}/>
+                    <button type="button" onClick={() => {if(newTag.trim()) set('limitaciones', [...form.limitaciones, newTag.trim()]); setNewTag('');}} className="btn-secondary" style={{padding:'0 1rem'}}><Plus size={16}/></button>
+                  </div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                    {form.limitaciones.map(t => <span key={t} className="badge badge-amber" style={{display:'flex', gap:'6px'}}>{t} <X size={10} style={{cursor:'pointer'}} onClick={()=>set('limitaciones', form.limitaciones.filter(x=>x!==t))}/></span>)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── SECCIÓN: HÁBITOS ── */}
+            {activeTab === 'lifestyle' && (
+              <div className="animate-fade-in" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.5rem' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Nivel de Actividad Diaria</label>
+                  <div style={{ display:'flex', gap:'8px' }}>
+                    {ESTILO_VIDA.map(ev => <button key={ev.value} type="button" onClick={()=>set('estilo_vida', ev.value)} style={{ flex:1, padding:'0.8rem', borderRadius:'12px', border: `2px solid ${form.estilo_vida === ev.value ? 'var(--color-secondary)' : 'rgba(255,255,255,0.05)'}`, background: form.estilo_vida === ev.value ? 'rgba(0,230,118,0.1)' : 'transparent', color: 'white', cursor:'pointer' }}>{ev.label}</button>)}
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Horas sueño</label>
+                  <select style={inputStyle} value={form.horas_sueno} onChange={e=>set('horas_sueno', e.target.value)}>
+                    {['<5', '5-6', '6-7', '7-8', '8+'].map(h => <option key={h} value={h}>{h} horas</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Estrés</label>
+                  <select style={inputStyle} value={form.nivel_estres} onChange={e=>set('nivel_estres', e.target.value)}>
+                    <option value="bajo">Bajo</option><option value="medio">Medio</option><option value="alto">Alto</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Comidas al día</label>
+                  <input style={inputStyle} type="number" value={form.comidas_dia} onChange={e=>set('comidas_dia', parseInt(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Alcohol</label>
+                  <select style={inputStyle} value={form.alcohol} onChange={e=>set('alcohol', e.target.value)}>
+                    <option value="no">Nada</option><option value="ocasional">Ocasional</option><option value="frecuente">Frecuente</option>
                   </select>
                 </div>
               </div>
+            )}
 
-              {/* Limitaciones (tags) */}
-              <div>
-                <label style={labelStyle}>Limitaciones físicas / lesiones</label>
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <input style={{ ...inputStyle, flex: 1 }} value={newLimitacion} onChange={e => setNewLimitacion(e.target.value)} placeholder="Ej: rodilla derecha, lumbar" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag('limitaciones', newLimitacion, setNewLimitacion))} />
-                  <button type="button" onClick={() => addTag('limitaciones', newLimitacion, setNewLimitacion)} style={{ background: 'rgba(255,107,0,0.2)', border: '1px solid var(--color-accent)', color: 'var(--color-accent)', borderRadius: '10px', padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                    <Plus size={16} />
-                  </button>
+            {/* ── SECCIÓN: FITNESS ── */}
+            {activeTab === 'fitness' && (
+              <div className="animate-fade-in" style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
+                <div>
+                  <label style={labelStyle}>Objetivo Principal</label>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'8px' }}>
+                    {OBJETIVOS.map(o => <button key={o.value} type="button" onClick={()=>set('objetivo', o.value)} style={{ padding:'0.8rem', borderRadius:'12px', border: `2px solid ${form.objetivo === o.value ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)'}`, background: form.objetivo === o.value ? 'rgba(255,107,0,0.1)' : 'transparent', color: 'white', cursor:'pointer', fontSize:'0.8rem' }}>{o.label}</button>)}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {form.limitaciones.map(tag => (
-                    <span key={tag} style={{ background: 'rgba(255,107,0,0.15)', color: 'var(--color-accent)', border: '1px solid rgba(255,107,0,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      {tag} <Trash2 size={11} style={{ cursor: 'pointer' }} onClick={() => removeTag('limitaciones', tag)} />
-                    </span>
-                  ))}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.5rem' }}>
+                  <div>
+                    <label style={labelStyle}>Experiencia</label>
+                    <select style={inputStyle} value={form.experiencia} onChange={e=>set('experiencia', e.target.value)}>
+                      {EXPERIENCIA.map(ex => <option key={ex.value} value={ex.value}>{ex.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Equipamiento</label>
+                    <select style={inputStyle} value={form.equipamiento} onChange={e=>set('equipamiento', e.target.value)}>
+                      {EQUIPAMIENTO.map(eq => <option key={eq.value} value={eq.value}>{eq.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Días/Semana</label>
+                    <input style={inputStyle} type="number" min="1" max="7" value={form.dias_disponibles} onChange={e=>set('dias_disponibles', parseInt(e.target.value))} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Tiempo Sesión</label>
+                    <select style={inputStyle} value={form.tiempo_sesion} onChange={e=>set('tiempo_sesion', e.target.value)}>
+                      {['30 min', '45 min', '60 min', '90 min'].map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Meta Específica</label>
+                  <input style={inputStyle} value={form.meta_especifica} onChange={e=>set('meta_especifica', e.target.value)} placeholder="Ej: Bajar 5kg para mi boda" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Motivación Principal</label>
+                  <input style={inputStyle} value={form.motivacion_principal} onChange={e=>set('motivacion_principal', e.target.value)} />
                 </div>
               </div>
+            )}
 
-              {/* Restricciones alimentarias (tags) */}
-              <div>
-                <label style={labelStyle}>Restricciones alimentarias</label>
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <input style={{ ...inputStyle, flex: 1 }} value={newRestriccion} onChange={e => setNewRestriccion(e.target.value)} placeholder="Ej: lactosa, gluten, mariscos" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag('restricciones_alimentarias', newRestriccion, setNewRestriccion))} />
-                  <button type="button" onClick={() => addTag('restricciones_alimentarias', newRestriccion, setNewRestriccion)} style={{ background: 'rgba(0,230,118,0.1)', border: '1px solid var(--color-secondary)', color: 'var(--color-secondary)', borderRadius: '10px', padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                    <Plus size={16} />
-                  </button>
+            {/* ── SECCIÓN: MEDIDAS ── */}
+            {activeTab === 'medidas' && (
+              <div className="animate-fade-in" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.5rem' }}>
+                <div>
+                  <label style={labelStyle}>% Grasa Estimado</label>
+                  <input style={inputStyle} type="number" value={form.porcentaje_grasa_inicial} onChange={e=>set('porcentaje_grasa_inicial', parseFloat(e.target.value))} />
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {form.restricciones_alimentarias.map(tag => (
-                    <span key={tag} style={{ background: 'rgba(0,230,118,0.1)', color: 'var(--color-secondary)', border: '1px solid rgba(0,230,118,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      {tag} <Trash2 size={11} style={{ cursor: 'pointer' }} onClick={() => removeTag('restricciones_alimentarias', tag)} />
-                    </span>
-                  ))}
+                <div>
+                  <label style={labelStyle}>Cintura (cm)</label>
+                  <input style={inputStyle} type="number" value={form.medida_cintura} onChange={e=>set('medida_cintura', parseFloat(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Cadera (cm)</label>
+                  <input style={inputStyle} type="number" value={form.medida_cadera} onChange={e=>set('medida_cadera', parseFloat(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Compromiso (1-10)</label>
+                  <select style={inputStyle} value={form.nivel_compromiso} onChange={e=>set('nivel_compromiso', e.target.value)}>
+                    <option value="bajo">Bajo (1-3)</option><option value="medio">Medio (4-7)</option><option value="alto">Alto (8-10)</option>
+                  </select>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Observaciones Posturales</label>
+                  <textarea style={{...inputStyle, height:'60px', resize:'none'}} value={form.observaciones_posturales} onChange={e=>set('observaciones_posturales', e.target.value)}></textarea>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Notas adicionales del Coach</label>
+                  <textarea style={{...inputStyle, height:'60px', resize:'none'}} value={form.notas_entrenador} onChange={e=>set('notas_entrenador', e.target.value)}></textarea>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </form>
+        </div>
 
-          {/* Footer */}
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1.8rem', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onClose} style={{ padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'white', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn-primary" disabled={loading} style={{ padding: '0.75rem 1.8rem', minWidth: '140px' }}>
-              {loading ? '⏳ Guardando...' : isEditing ? '💾 Guardar Cambios' : '✅ Crear Cliente'}
+        {/* Footer Fixed */}
+        <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>
+             Pestaña {TABS.findIndex(t=>t.id===activeTab)+1} de {TABS.length}
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button type="button" onClick={onClose} className="btn-secondary" style={{ padding: '0.7rem 1.2rem' }}>Cancelar</button>
+            <button type="submit" form="interview-form" className="btn-primary" disabled={loading} style={{ padding: '0.7rem 2rem' }}>
+               {loading ? 'Guardando...' : isEditing ? 'Guardar Expediente' : 'Finalizar Registro'}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

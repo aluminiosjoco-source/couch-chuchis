@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Activity, Dumbbell, Eye, EyeOff, User, Mail, Lock, ChevronRight, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Activity, AlertCircle } from 'lucide-react';
 
 export default function Login({ onSwitch }) {
   const { login } = useAuth();
@@ -13,105 +13,137 @@ export default function Login({ onSwitch }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    try {
-      await login(form.email, form.password);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    try { await login(form.email, form.password); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-dark)', padding: '2rem' }}>
+    <div style={{
+      minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+      background: 'var(--bg-base)', padding: 'var(--s4)',
+    }}>
       {/* Background glow */}
-      <div style={{ position: 'fixed', top: '-20%', left: '-10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(255,90,0,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'fixed', bottom: '-20%', right: '-10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(0,230,118,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{
+        position: 'fixed', top: '-30%', left: '-20%', width: '70vw', height: '70vw',
+        background: 'radial-gradient(circle, rgba(255,90,0,0.06) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
 
-      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '440px', padding: '3rem' }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <div style={{ background: 'linear-gradient(135deg, var(--color-primary), #FF8A00)', borderRadius: '12px', padding: '10px', display: 'flex' }}>
-              <Dumbbell size={28} color="#fff" />
-            </div>
-            <h1 className="text-gradient" style={{ fontSize: '1.75rem', margin: 0 }}>Coach SaaS</h1>
-          </div>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>Bienvenido de vuelta. Tu equipo te espera.</p>
+      {/* Header */}
+      <div style={{ paddingTop: '10vh', marginBottom: 'var(--s8)' }} className="text-center anim-fade-up">
+        <div style={{
+          width: 64, height: 64, borderRadius: 'var(--r-lg)',
+          background: 'var(--brand)', margin: '0 auto var(--s4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 32px rgba(255,90,0,0.35)',
+        }}>
+          <Activity size={32} color="#fff" />
         </div>
+        <h1 style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', marginBottom: 'var(--s2)' }}>
+          Bienvenido
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          Accede a tu plataforma de coaching
+        </p>
+      </div>
 
-        {/* Error */}
+      {/* Form Card */}
+      <div className="card anim-fade-up" style={{ animationDelay: '.1s', maxWidth: 440, width: '100%', margin: '0 auto', padding: 'var(--s6)' }}>
         {error && (
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'rgba(255,90,0,0.12)', border: '1px solid rgba(255,90,0,0.3)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.5rem', color: '#FF8A00', fontSize: '0.875rem' }}>
-            <AlertCircle size={16} /> {error}
+          <div className="alert alert-error mb-4" style={{ marginBottom: 'var(--s4)' }}>
+            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
           {/* Email */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+          <div className="field">
+            <label className="field-label">Correo electrónico</label>
+            <div className="input-icon">
+              <Mail size={16} className="icon" />
               <input
                 id="login-email"
+                className="input"
                 type="email"
                 value={form.email}
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                 placeholder="tu@email.com"
                 required
-                style={inputStyle}
+                autoComplete="email"
               />
             </div>
           </div>
 
           {/* Password */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Contraseña</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+          <div className="field">
+            <label className="field-label">Contraseña</label>
+            <div className="input-icon" style={{ position: 'relative' }}>
+              <Lock size={16} className="icon" />
               <input
                 id="login-password"
+                className="input"
                 type={showPass ? 'text' : 'password'}
                 value={form.password}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                 placeholder="••••••••"
                 required
-                style={{ ...inputStyle, paddingRight: '3rem' }}
+                style={{ paddingRight: 48 }}
+                autoComplete="current-password"
               />
-              <button type="button" onClick={() => setShowPass(s => !s)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <button
+                type="button"
+                onClick={() => setShowPass(s => !s)}
+                style={{
+                  position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-muted)', padding: 4,
+                }}
+              >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          <button id="login-submit" type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem', padding: '0.9rem', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            {loading ? <div style={spinnerStyle} /> : <><Activity size={18} /> Entrar al Dashboard</>}
+          <button
+            id="login-submit"
+            type="submit"
+            className="btn btn-primary btn-lg"
+            disabled={loading}
+            style={{ marginTop: 'var(--s2)' }}
+          >
+            {loading
+              ? <span className="spin" style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block' }} />
+              : 'Entrar al dashboard'
+            }
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-          ¿No tienes cuenta?{' '}
-          <button onClick={onSwitch} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: '600' }}>Crear cuenta gratis</button>
-        </div>
-
         {/* Demo credentials */}
-        <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(0,176,255,0.07)', borderRadius: '10px', border: '1px solid rgba(0,176,255,0.15)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-          <strong style={{ color: 'var(--color-accent)' }}>Demo:</strong> trainer@fitzone.com / demo1234
+        <div style={{
+          marginTop: 'var(--s5)', padding: 'var(--s3) var(--s4)',
+          background: 'var(--bg-input)', borderRadius: 'var(--r-md)',
+          border: '1px solid var(--border)',
+        }}>
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4 }}>Demo rápido:</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            <span style={{ color: 'var(--blue)' }}>trainer@fitzone.com</span>
+            {' / '}
+            <span>demo1234</span>
+          </p>
         </div>
       </div>
+
+      {/* Switch */}
+      <p style={{ textAlign: 'center', marginTop: 'var(--s5)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+        ¿No tienes cuenta?{' '}
+        <button
+          onClick={onSwitch}
+          style={{ background: 'none', border: 'none', color: 'var(--brand)', fontWeight: 600, fontSize: 'inherit' }}
+        >
+          Crear cuenta gratis
+        </button>
+      </p>
     </div>
   );
 }
-
-const inputStyle = {
-  width: '100%', paddingLeft: '2.75rem', paddingRight: '1rem', paddingTop: '0.85rem', paddingBottom: '0.85rem',
-  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', borderRadius: '10px',
-  color: 'var(--color-text-main)', fontSize: '0.95rem', outline: 'none', fontFamily: 'var(--font-body)',
-  transition: 'border-color 0.2s',
-};
-
-const spinnerStyle = {
-  width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
-  borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-};

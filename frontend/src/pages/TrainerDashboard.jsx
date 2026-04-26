@@ -1,235 +1,294 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, TrendingUp, Users, PlusCircle, User, Loader2, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
+import {
+  AlertTriangle, TrendingUp, Users, PlusCircle, User,
+  Loader2, Edit2, Trash2, UserCheck, UserX, ChevronRight,
+  Bell, Dumbbell, Utensils
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import RoutineWizard from './Trainer/RoutineWizard';
 import ClientFormModal from './Trainer/ClientFormModal';
+
+function RiskBadge({ riesgo }) {
+  if (!riesgo || riesgo < 0.3) return null;
+  const high = riesgo > 0.5;
+  return (
+    <span className={`badge ${high ? 'badge-red' : 'badge-amber'}`}>
+      {high ? '⚠ Riesgo alto' : '⚡ Revisar'}
+    </span>
+  );
+}
 
 export default function TrainerDashboard() {
   const { user, authFetch } = useAuth();
   const [data, setData] = useState(null);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showWizard, setShowWizard] = useState(false);
-  const [selectedClientForWizard, setSelectedClientForWizard] = useState(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null); // client id to confirm
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [filterActivos, setFilterActivos] = useState(true);
 
   const isOwner = user?.rol === 'gym_owner' || user?.rol === 'super_admin';
 
   const fetchClients = async () => {
-    if (!authFetch) return;
-    const rClients = await authFetch('http://localhost:5000/api/clients');
-    if (rClients.ok) setClients(await rClients.json());
+    const r = await authFetch('http://localhost:5000/api/clients');
+    if (r.ok) setClients(await r.json());
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
-        const rDash = await fetch('http://localhost:5000/api/v1/trainers/dashboard');
-        if (rDash.ok) setData(await rDash.json());
-
+        const r = await fetch('http://localhost:5000/api/v1/trainers/dashboard');
+        if (r.ok) setData(await r.json());
         await fetchClients();
-      } catch (err) {
-        console.error('Error cargando dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authFetch]);
+      } catch { /* offline */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
 
-  const handleDeleteClient = async (clientId) => {
-    try {
-      const res = await authFetch(`http://localhost:5000/api/clients/${clientId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setClients(prev => prev.filter(c => c.id !== clientId));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setConfirmDelete(null);
-    }
+  const handleDelete = async (id) => {
+    await authFetch(`http://localhost:5000/api/clients/${id}`, { method: 'DELETE' });
+    setClients(p => p.filter(c => c.id !== id));
+    setConfirmDelete(null);
   };
 
-  const handleClientSaved = () => {
-    fetchClients();
-  };
+  const visible = clients.filter(c => filterActivos ? c.is_active !== false : !c.is_active);
+  const activeCount = clients.filter(c => c.is_active !== false).length;
+  const inactiveCount = clients.filter(c => c.is_active === false).length;
+  const riskCount = clients.filter(c => (c.estado?.riesgo_abandono || 0) > 0.5).length;
 
-  const visibleClients = clients.filter(c => filterActivos ? c.is_active !== false : !c.is_active);
-
-  if (loading) return <div className="flex-center" style={{ height: '100%' }}><Loader2 className="animate-spin" size={48} /></div>;
+  if (loading) return (
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Loader2 size={32} color="var(--brand)" className="spin" />
+    </div>
+  );
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '2rem' }}>
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 className="text-gradient">Buenos días, {user?.nombre || 'Coach'}</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Gym: {user?.gym_id || 'FitZone'} | Múltiples alertas requieren tu atención.</p>
-      </header>
-
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div className="glass-panel text-center flex-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-          <Users size={36} color="var(--color-accent)" />
-          <h3 style={{ fontSize: '2rem' }}>{clients.filter(c => c.is_active !== false).length || data?.active_clients || 0}</h3>
-          <p style={{ color: 'var(--color-text-muted)' }}>Clientes Activos</p>
-        </div>
-        <div className="glass-panel text-center flex-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-          <TrendingUp size={36} color="var(--color-secondary)" />
-          <h3 className="text-gradient-green" style={{ fontSize: '2rem' }}>{data?.avg_adherence || 85}%</h3>
-          <p style={{ color: 'var(--color-text-muted)' }}>Adherencia Promedio</p>
-        </div>
-        <div className="glass-panel text-center flex-center" style={{ flexDirection: 'column', gap: '1rem' }}>
-          <UserX size={36} color="#ff6b6b" />
-          <h3 style={{ fontSize: '2rem', color: '#ff6b6b' }}>{clients.filter(c => c.is_active === false).length}</h3>
-          <p style={{ color: 'var(--color-text-muted)' }}>Clientes Inactivos</p>
+    <div className="anim-fade-up">
+      {/* ── Page Header ── */}
+      <div style={{ padding: 'var(--s5) var(--s4) 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--s1)' }}>
+          <div>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 2 }}>
+              {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}
+            </p>
+            <h1 style={{ fontSize: '1.5rem' }}>Hola, {user?.nombre?.split(' ')[0]} 👋</h1>
+          </div>
+          {riskCount > 0 && (
+            <div style={{ position: 'relative' }}>
+              <Bell size={22} color="var(--text-muted)" />
+              <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: '#fff', fontSize: '0.6rem', fontWeight: 700, borderRadius: '999px', minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                {riskCount}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Alertas Motor de Decisiones */}
-      <section style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <AlertTriangle color="#FBC02D" /> Alertas del Motor de Decisiones
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {data?.alerts?.map((alert, i) => (
-            <div key={i} className={`glass-panel flex-between ${alert.type === 'critical' ? 'alert-critical' : 'alert-warning'}`} style={{ padding: '1rem' }}>
-              <div>
-                <strong>{alert.client}</strong> - <span style={{ color: 'var(--color-text-muted)' }}>{alert.issue}</span>
+      {/* ── KPIs ── */}
+      <div style={{ padding: 'var(--s4)', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--s2)' }} className="stagger">
+        {[
+          { label: 'Activos', value: activeCount, color: 'var(--blue)', icon: <Users size={16} /> },
+          { label: 'Adherencia', value: `${data?.avg_adherence || 85}%`, color: 'var(--green)', icon: <TrendingUp size={16} /> },
+          { label: 'Alertas', value: riskCount, color: riskCount > 0 ? 'var(--red)' : 'var(--text-muted)', icon: <AlertTriangle size={16} /> },
+        ].map(k => (
+          <div key={k.label} className="card anim-fade-up" style={{ textAlign: 'center', padding: 'var(--s4) var(--s2)' }}>
+            <div style={{ color: k.color, display: 'flex', justifyContent: 'center', marginBottom: 6 }}>{k.icon}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.4rem', color: k.color, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Alerts ── */}
+      {data?.alerts?.length > 0 && (
+        <div style={{ padding: '0 var(--s4)', marginBottom: 'var(--s2)' }}>
+          <div className="section-header">
+            <span className="section-title">Requieren atención</span>
+            <span className="badge badge-red">{data.alerts.length}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s2)' }}>
+            {data.alerts.map((a, i) => (
+              <div key={i} className="card" style={{ borderColor: 'rgba(255,75,85,0.2)', background: 'rgba(255,75,85,0.05)', padding: 'var(--s3) var(--s4)', display: 'flex', alignItems: 'center', gap: 'var(--s3)' }}>
+                <AlertTriangle size={16} color="var(--red)" style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.client}</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{a.issue}</p>
+                </div>
+                <ChevronRight size={16} color="var(--text-muted)" />
               </div>
-              <button className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.875rem' }}>Revisar Contexto</button>
-            </div>
-          ))}
-          {(!data?.alerts || data.alerts.length === 0) && (
-            <p style={{ color: 'var(--color-text-muted)' }}>No hay alertas críticas por ahora.</p>
-          )}
+            ))}
+          </div>
         </div>
-      </section>
+      )}
 
-      {/* Lista de Clientes */}
-      <section>
-        <div className="flex-between" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Users /> Mis Clientes</h3>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Filtro activo/inactivo */}
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', padding: '3px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <button onClick={() => setFilterActivos(true)} style={{ padding: '0.4rem 0.9rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', background: filterActivos ? 'var(--color-accent)' : 'transparent', color: filterActivos ? 'white' : 'var(--color-text-muted)', transition: 'all 0.2s' }}>
-                <UserCheck size={14} style={{ display: 'inline', marginRight: '4px' }} />Activos
-              </button>
-              <button onClick={() => setFilterActivos(false)} style={{ padding: '0.4rem 0.9rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', background: !filterActivos ? '#ff6b6b' : 'transparent', color: !filterActivos ? 'white' : 'var(--color-text-muted)', transition: 'all 0.2s' }}>
-                <UserX size={14} style={{ display: 'inline', marginRight: '4px' }} />Inactivos
-              </button>
-            </div>
-
-            <button className="btn-primary flex-center" style={{ gap: '0.5rem' }}
-              onClick={() => { setSelectedClientForWizard(null); setShowWizard(true); }}>
-              <PlusCircle size={18} /> Nueva Rutina
+      {/* ── Clients Section ── */}
+      <div style={{ padding: '0 var(--s4)' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--s3)', marginTop: 'var(--s2)' }}>
+          <div className="section-header" style={{ margin: 0, flex: 1 }}>
+            <span className="section-title">Mis clientes</span>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--s2)' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setEditingClient(null); setShowClientForm(true); }}
+            >
+              <PlusCircle size={15} /> Nuevo
             </button>
-
-            <button className="btn-primary flex-center" style={{ gap: '0.5rem', background: 'rgba(0,230,118,0.15)', border: '1px solid var(--color-secondary)', color: 'var(--color-secondary)' }}
-              onClick={() => { setEditingClient(null); setShowClientForm(true); }}>
-              <PlusCircle size={18} /> Nuevo Cliente
-            </button>
+            <Link to="/trainer/rutinas" className="btn btn-primary btn-sm">
+              <Dumbbell size={15} /> Plantillas
+            </Link>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-          {visibleClients.map(client => (
-            <div key={client.id} className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', opacity: client.is_active === false ? 0.65 : 1, transition: 'opacity 0.2s' }}>
-              {/* Botón + Rutina */}
-              <button
-                title="Nueva Rutina"
-                onClick={() => { setSelectedClientForWizard(client); setShowWizard(true); }}
-                style={{ background: 'rgba(255,107,0,0.1)', color: 'var(--color-accent)', padding: '0.5rem', borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
-                <PlusCircle size={20} />
-              </button>
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: 'var(--s2)', marginBottom: 'var(--s3)', background: 'var(--bg-raised)', borderRadius: 'var(--r-md)', padding: '4px' }}>
+          {[
+            { active: filterActivos, label: `Activos (${activeCount})`, action: () => setFilterActivos(true) },
+            { active: !filterActivos, label: `Inactivos (${inactiveCount})`, action: () => setFilterActivos(false) },
+          ].map(t => (
+            <button
+              key={t.label}
+              onClick={t.action}
+              style={{
+                flex: 1, padding: 'var(--s2)', borderRadius: 'var(--r-sm)',
+                border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                fontFamily: 'var(--font-display)',
+                background: t.active ? 'var(--bg-card)' : 'transparent',
+                color: t.active ? 'var(--text-primary)' : 'var(--text-muted)',
+                transition: 'all .2s',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-              {/* Info cliente */}
-              <div style={{ flex: 1, minWidth: '180px' }}>
-                <Link to={`/trainer/clients/${client.id}`} style={{ textDecoration: 'none', color: 'white', fontWeight: 'bold', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {client.nombre} <User size={14} color="var(--color-text-muted)" />
-                </Link>
-                <div style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem', marginTop: '0.2rem' }}>
-                  {client.email} &nbsp;·&nbsp;
-                  Sem {client.estado?.week || 1} &nbsp;·&nbsp;
-                  Adherencia: {Math.round((client.estado?.adherencia_promedio || 0) * 100)}% &nbsp;·&nbsp;
-                  Riesgo: {Math.round((client.estado?.riesgo_abandono || 0) * 100)}%
+        {/* Client list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s2)', paddingBottom: 'var(--s4)' }}>
+          {visible.map(c => (
+            <div key={c.id} className="card" style={{ padding: 'var(--s3) var(--s4)', opacity: c.is_active === false ? 0.55 : 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)' }}>
+                {/* Avatar */}
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  background: `linear-gradient(135deg, var(--brand), var(--amber))`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: '#fff',
+                }}>
+                  {c.nombre?.charAt(0).toUpperCase()}
+                </div>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Link to={`/trainer/clients/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.nombre}
+                    </span>
+                    <ChevronRight size={14} color="var(--text-muted)" />
+                  </Link>
+                  <div style={{ display: 'flex', gap: 'var(--s2)', marginTop: 4, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Sem {c.estado?.week || 1}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--green)', fontWeight: 600 }}>
+                      {Math.round((c.estado?.adherencia_promedio || 0) * 100)}% adh.
+                    </span>
+                    <RiskBadge riesgo={c.estado?.riesgo_abandono} />
+                    {c.estado?.fatiga_ultima >= 7 && (
+                      <span className="badge badge-amber" style={{ padding: '2px 7px', fontSize: '0.65rem' }}>
+                        Fatiga alta
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 'var(--s1)' }}>
+                  <Link
+                    to={`/trainer/clients/${c.id}/plan`}
+                    className="btn-icon"
+                    style={{ width: 36, height: 36 }}
+                    title="Diseñar Plan Estratégico"
+                  >
+                    <Dumbbell size={15} />
+                  </Link>
+                  <Link
+                    to={`/trainer/clients/${c.id}/plan`}
+                    className="btn-icon"
+                    style={{ width: 36, height: 36, color: 'var(--amber)' }}
+                    title="Nueva dieta"
+                  >
+                    <Utensils size={15} />
+                  </Link>
+                  <button
+                    className="btn-icon"
+                    style={{ width: 36, height: 36 }}
+                    onClick={() => { setEditingClient(c); setShowClientForm(true); }}
+                    title="Editar"
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                  {isOwner && (
+                    <button
+                      className="btn-icon"
+                      style={{ width: 36, height: 36, color: 'var(--red)', borderColor: 'rgba(255,75,85,0.2)' }}
+                      onClick={() => setConfirmDelete(c.id)}
+                      title="Desactivar"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               </div>
-
-              {/* Badges de estado */}
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                {client.is_active === false && (
-                  <span style={{ background: 'rgba(100,100,100,0.2)', color: '#aaa', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem' }}>Inactivo</span>
-                )}
-                {client.estado?.riesgo_abandono > 0.5 && (
-                  <span style={{ background: 'rgba(255,0,0,0.2)', color: '#ff6b6b', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem' }}>Riesgo Alto</span>
-                )}
-                {client.estado?.fatiga_ultima >= 7 && (
-                  <span style={{ background: 'rgba(255,165,0,0.2)', color: 'orange', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem' }}>Fatiga Alta</span>
-                )}
-              </div>
-
-              {/* Acciones */}
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button title="Editar"
-                  onClick={() => { setEditingClient(client); setShowClientForm(true); }}
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'white', borderRadius: '8px', padding: '0.4rem 0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                  <Edit2 size={14} />
-                </button>
-                {isOwner && (
-                  <button title="Desactivar"
-                    onClick={() => setConfirmDelete(client.id)}
-                    style={{ background: 'rgba(255,50,50,0.1)', border: '1px solid rgba(255,50,50,0.3)', color: '#ff6b6b', borderRadius: '8px', padding: '0.4rem 0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
             </div>
           ))}
 
-          {visibleClients.length === 0 && (
-            <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              {filterActivos ? (
-                <>No tienes clientes activos. <button onClick={() => { setEditingClient(null); setShowClientForm(true); }} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit' }}>Crear el primero →</button></>
-              ) : 'No hay clientes inactivos.'}
+          {visible.length === 0 && (
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--s8) var(--s4)' }}>
+              <User size={36} color="var(--text-muted)" style={{ margin: '0 auto var(--s3)' }} />
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--s4)', fontSize: '0.9rem' }}>
+                {filterActivos ? 'Sin clientes activos aún' : 'Sin clientes inactivos'}
+              </p>
+              {filterActivos && (
+                <button className="btn btn-primary btn-sm" onClick={() => { setEditingClient(null); setShowClientForm(true); }}>
+                  <PlusCircle size={15} /> Agregar primer cliente
+                </button>
+              )}
             </div>
           )}
         </div>
-      </section>
+      </div>
 
-      {/* Confirm Delete Dialog */}
+      {/* ── Confirm Delete Modal ── */}
       {confirmDelete && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="glass-panel animate-fade-in" style={{ padding: '2rem', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-            <Trash2 size={40} color="#ff6b6b" style={{ marginBottom: '1rem' }} />
-            <h3>¿Desactivar este cliente?</h3>
-            <p style={{ color: 'var(--color-text-muted)', margin: '0.5rem 0 1.5rem' }}>El cliente quedará inactivo pero sus datos se conservarán.</p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button onClick={() => setConfirmDelete(null)} style={{ padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'white', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>Cancelar</button>
-              <button onClick={() => handleDeleteClient(confirmDelete)} style={{ padding: '0.75rem 1.5rem', background: 'rgba(255,50,50,0.2)', border: '1px solid rgba(255,50,50,0.4)', color: '#ff6b6b', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>Sí, desactivar</button>
+        <div className="modal-overlay">
+          <div className="modal-sheet">
+            <div className="modal-handle" />
+            <div style={{ textAlign: 'center', padding: 'var(--s2) 0 var(--s4)' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,75,85,0.12)', border: '1px solid rgba(255,75,85,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--s4)' }}>
+                <Trash2 size={24} color="var(--red)" />
+              </div>
+              <h3 style={{ marginBottom: 'var(--s2)' }}>¿Desactivar cliente?</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--s6)' }}>
+                Sus datos se conservarán. Podrás reactivarlo más adelante.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--s3)' }}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setConfirmDelete(null)}>Cancelar</button>
+                <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => handleDelete(confirmDelete)}>Sí, desactivar</button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Routine Wizard */}
-      {showWizard && (
-        <RoutineWizard
-          client={selectedClientForWizard}
-          onClose={() => setShowWizard(false)}
-        />
-      )}
 
-      {/* Client Form Modal */}
       {showClientForm && (
         <ClientFormModal
           client={editingClient}
           onClose={() => { setShowClientForm(false); setEditingClient(null); }}
-          onSuccess={handleClientSaved}
+          onSuccess={() => fetchClients()}
         />
       )}
     </div>

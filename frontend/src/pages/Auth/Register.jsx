@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Dumbbell, User, Mail, Lock, Building2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Building2, AlertCircle, Activity } from 'lucide-react';
 
 const ROLES = [
-  { value: 'client', label: '🏃 Cliente / Atleta', desc: 'Accede a tu plan y check-in semanal' },
-  { value: 'trainer', label: '🎯 Entrenador', desc: 'Gestiona tu cartera de clientes' },
-  { value: 'gym_owner', label: '🏢 Dueño de Gym', desc: 'Administra tu gimnasio completo' },
+  { value: 'client', emoji: '🏃', label: 'Atleta', desc: 'Sigue tu plan y registra check-ins' },
+  { value: 'trainer', emoji: '🎯', label: 'Entrenador', desc: 'Gestiona tu cartera de clientes' },
+  { value: 'gym_owner', emoji: '🏢', label: 'Dueño Gym', desc: 'Administra tu gimnasio completo' },
 ];
 
 export default function Register({ onSwitch }) {
@@ -15,111 +15,135 @@ export default function Register({ onSwitch }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password.length < 8) { setError('La contraseña debe tener mínimo 8 caracteres'); return; }
-    if (form.rol === 'gym_owner' && !form.nombre_gym) { setError('El nombre del gimnasio es requerido'); return; }
+    if (form.password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return; }
+    if (form.rol === 'gym_owner' && !form.nombre_gym) { setError('Ingresa el nombre de tu gimnasio'); return; }
     setLoading(true);
-    try {
-      await register(form);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    try { await register(form); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-dark)', padding: '2rem' }}>
-      <div style={{ position: 'fixed', top: '-20%', right: '-10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(0,230,118,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+    <div style={{
+      minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+      background: 'var(--bg-base)', padding: 'var(--s4)',
+      overflowY: 'auto',
+    }}>
+      <div style={{ position: 'fixed', bottom: '-20%', right: '-20%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(34,214,122,0.05) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
-      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: '3rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <div style={{ background: 'linear-gradient(135deg, #00E676, #00B0FF)', borderRadius: '12px', padding: '10px', display: 'flex' }}>
-              <Dumbbell size={28} color="#fff" />
-            </div>
-            <h1 className="text-gradient-green" style={{ fontSize: '1.75rem', margin: 0 }}>Crear Cuenta</h1>
-          </div>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>14 días gratis. Sin tarjeta de crédito.</p>
+      {/* Header */}
+      <div style={{ paddingTop: '8vh', marginBottom: 'var(--s6)' }} className="text-center anim-fade-up">
+        <div style={{ width: 56, height: 56, borderRadius: 'var(--r-lg)', background: 'var(--green)', margin: '0 auto var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 28px rgba(34,214,122,0.3)' }}>
+          <Activity size={28} color="#0D0F12" />
         </div>
+        <h1 style={{ fontSize: '1.7rem', fontFamily: 'var(--font-display)', marginBottom: 'var(--s1)' }}>
+          Crear cuenta
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>14 días gratis · Sin tarjeta</p>
+      </div>
 
-        {/* Selector de Rol */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.75rem' }}>
+      <div className="card anim-fade-up" style={{ animationDelay: '.1s', maxWidth: 440, width: '100%', margin: '0 auto', padding: 'var(--s6)' }}>
+        {/* Role selector */}
+        <div style={{ display: 'flex', gap: 'var(--s2)', marginBottom: 'var(--s5)' }}>
           {ROLES.map(r => (
-            <button key={r.value} type="button" id={`role-${r.value}`}
-              onClick={() => setForm(p => ({ ...p, rol: r.value }))}
-              style={{ padding: '0.75rem 0.5rem', borderRadius: '10px', border: `2px solid ${form.rol === r.value ? 'var(--color-secondary)' : 'var(--glass-border)'}`, background: form.rol === r.value ? 'rgba(0,230,118,0.08)' : 'transparent', color: 'var(--color-text-main)', cursor: 'pointer', textAlign: 'center', fontSize: '0.75rem', transition: 'all 0.2s' }}>
-              <div style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{r.label.split(' ')[0]}</div>
-              <div style={{ fontWeight: '600', fontSize: '0.8rem' }}>{r.label.substring(2)}</div>
+            <button
+              key={r.value}
+              type="button"
+              id={`role-${r.value}`}
+              onClick={() => set('rol', r.value)}
+              style={{
+                flex: 1, padding: 'var(--s3) var(--s2)',
+                background: form.rol === r.value ? 'rgba(34,214,122,0.08)' : 'var(--bg-input)',
+                border: `2px solid ${form.rol === r.value ? 'var(--green)' : 'var(--border)'}`,
+                borderRadius: 'var(--r-md)', color: 'var(--text-primary)',
+                cursor: 'pointer', textAlign: 'center',
+                transition: 'all .2s',
+              }}
+            >
+              <div style={{ fontSize: '1.3rem', lineHeight: 1, marginBottom: 4 }}>{r.emoji}</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>{r.label}</div>
             </button>
           ))}
         </div>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--s5)', textAlign: 'center' }}>
+          {ROLES.find(r => r.value === form.rol)?.desc}
+        </p>
 
         {error && (
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'rgba(255,90,0,0.12)', border: '1px solid rgba(255,90,0,0.3)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', color: '#FF8A00', fontSize: '0.875rem' }}>
-            <AlertCircle size={16} /> {error}
+          <div className="alert alert-error" style={{ marginBottom: 'var(--s4)' }}>
+            <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Field label="Nombre completo" id="register-nombre"><User size={15} />
-            <input id="register-nombre" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Carlos Mendoza" required style={inputStyle} />
-          </Field>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s3)' }}>
+          {/* Nombre */}
+          <div className="field">
+            <label className="field-label">Nombre completo</label>
+            <div className="input-icon">
+              <User size={15} className="icon" />
+              <input id="register-nombre" className="input" value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Carlos Mendoza" required />
+            </div>
+          </div>
 
-          <Field label="Email" id="register-email"><Mail size={15} />
-            <input id="register-email" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="coach@fitzone.com" required style={inputStyle} />
-          </Field>
+          {/* Email */}
+          <div className="field">
+            <label className="field-label">Correo electrónico</label>
+            <div className="input-icon">
+              <Mail size={15} className="icon" />
+              <input id="register-email" className="input" type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="coach@fitzone.com" required autoComplete="email" />
+            </div>
+          </div>
 
-          <Field label="Contraseña (mín. 8 caracteres)" id="register-password"><Lock size={15} />
-            <input id="register-password" type={showPass ? 'text' : 'password'} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" required style={{ ...inputStyle, paddingRight: '3rem' }} />
-            <button type="button" onClick={() => setShowPass(s => !s)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
-              {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </Field>
+          {/* Password */}
+          <div className="field">
+            <label className="field-label">Contraseña (mín. 8 caracteres)</label>
+            <div className="input-icon" style={{ position: 'relative' }}>
+              <Lock size={15} className="icon" />
+              <input id="register-password" className="input" type={showPass ? 'text' : 'password'} value={form.password} onChange={e => set('password', e.target.value)} placeholder="••••••••" required style={{ paddingRight: 48 }} />
+              <button type="button" onClick={() => setShowPass(s => !s)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', padding: 4 }}>
+                {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
 
+          {/* Gym name */}
           {form.rol === 'gym_owner' && (
-            <Field label="Nombre del Gimnasio" id="register-gym"><Building2 size={15} />
-              <input id="register-gym" value={form.nombre_gym} onChange={e => setForm(p => ({ ...p, nombre_gym: e.target.value }))} placeholder="FitZone Monterrey" required style={inputStyle} />
-            </Field>
+            <div className="field">
+              <label className="field-label">Nombre del gimnasio</label>
+              <div className="input-icon">
+                <Building2 size={15} className="icon" />
+                <input id="register-gym" className="input" value={form.nombre_gym} onChange={e => set('nombre_gym', e.target.value)} placeholder="FitZone Monterrey" required />
+              </div>
+            </div>
           )}
 
-          <button id="register-submit" type="submit" className="btn-primary" disabled={loading}
-            style={{ marginTop: '0.5rem', padding: '0.9rem', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #00E676, #00B0FF)' }}>
-            {loading ? <div style={spinnerStyle} /> : <><CheckCircle2 size={18} /> Empezar prueba gratuita</>}
+          <button
+            id="register-submit"
+            type="submit"
+            className="btn btn-green btn-lg"
+            disabled={loading}
+            style={{ marginTop: 'var(--s2)' }}
+          >
+            {loading
+              ? <span className="spin" style={{ width: 20, height: 20, border: '2px solid rgba(13,15,18,0.3)', borderTopColor: '#0D0F12', borderRadius: '50%', display: 'inline-block' }} />
+              : 'Comenzar prueba gratuita'
+            }
           </button>
         </form>
-
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-          ¿Ya tienes cuenta?{' '}
-          <button onClick={onSwitch} style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer', fontWeight: '600' }}>Iniciar sesión</button>
-        </p>
       </div>
+
+      <p style={{ textAlign: 'center', marginTop: 'var(--s5)', marginBottom: 'var(--s6)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+        ¿Ya tienes cuenta?{' '}
+        <button onClick={onSwitch} style={{ background: 'none', border: 'none', color: 'var(--green)', fontWeight: 600, fontSize: 'inherit' }}>
+          Iniciar sesión
+        </button>
+      </p>
     </div>
   );
 }
-
-function Field({ label, id, children }) {
-  return (
-    <div>
-      <label htmlFor={id} style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <span style={{ position: 'absolute', left: '14px', color: 'var(--color-text-muted)', display: 'flex' }}>{children[0]}</span>
-        {children[1]}
-        {children[2]}
-      </div>
-    </div>
-  );
-}
-
-const inputStyle = {
-  width: '100%', paddingLeft: '2.75rem', paddingRight: '1rem', paddingTop: '0.8rem', paddingBottom: '0.8rem',
-  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', borderRadius: '10px',
-  color: 'var(--color-text-main)', fontSize: '0.9rem', outline: 'none', fontFamily: 'var(--font-body)',
-};
-
-const spinnerStyle = {
-  width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
-  borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-};

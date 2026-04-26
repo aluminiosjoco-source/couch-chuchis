@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Building2, Users, TrendingUp, DollarSign, AlertCircle, BarChart3, Shield } from 'lucide-react';
+import { Globe, Building2, Users, TrendingUp, DollarSign, AlertCircle, Shield, ChevronRight } from 'lucide-react';
 
 const MOCK = {
   platform: { total_gyms: 47, total_trainers: 186, total_clients: 2840, mrr_mxn: 284_500, avg_adherence: 82.3, churn_rate: 3.1 },
@@ -12,134 +12,176 @@ const MOCK = {
   ],
 };
 
-const PLAN_COLOR = { enterprise: '#FFD700', profesional: '#00E676', basico: '#00B0FF' };
-const STATUS_COLOR = { active: '#00E676', trial: '#00B0FF', past_due: '#FF5A00', inactive: '#9BA3AF' };
+const PLAN_COLOR = { enterprise: 'var(--amber)', profesional: 'var(--green)', basico: 'var(--blue)' };
+const STATUS_MAP = {
+  active: { color: 'var(--green)', label: 'Activo' },
+  trial: { color: 'var(--blue)', label: 'Trial' },
+  past_due: { color: 'var(--red)', label: 'Pago pendiente' },
+  inactive: { color: 'var(--text-muted)', label: 'Inactivo' },
+};
+
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'gyms', label: 'Gimnasios' },
+  { id: 'billing', label: 'Facturación' },
+];
 
 export default function SuperAdminDashboard() {
   const [tab, setTab] = useState('overview');
-  const d = MOCK;
+  const { platform: p, gyms } = MOCK;
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
+    <div className="anim-fade-up">
       {/* Header */}
-      <header style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <Shield size={24} color="var(--color-primary)" />
-          <h1 className="text-gradient" style={{ fontSize: '1.75rem' }}>Super Admin — Plataforma Global</h1>
+      <div style={{ padding: 'var(--s5) var(--s4) var(--s3)', display: 'flex', alignItems: 'center', gap: 'var(--s3)' }}>
+        <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--brand-dim)', border: '1px solid var(--brand-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Shield size={22} color="var(--brand)" />
         </div>
-        <p style={{ color: 'var(--color-text-muted)' }}>Vista centralizada de todos los tenants, suscripciones y salud del negocio.</p>
-      </header>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '0.4rem' }}>
-        {[{ id: 'overview', label: '📊 Overview' }, { id: 'gyms', label: '🏢 Gimnasios' }, { id: 'billing', label: '💳 Facturación' }].map(t => (
-          <button key={t.id} id={`admin-tab-${t.id}`} onClick={() => setTab(t.id)}
-            style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '9px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-heading)', fontWeight: tab === t.id ? '700' : '400', fontSize: '0.88rem', background: tab === t.id ? 'rgba(255,255,255,0.1)' : 'transparent', color: tab === t.id ? 'var(--color-text-main)' : 'var(--color-text-muted)', transition: 'all 0.2s' }}>
-            {t.label}
-          </button>
-        ))}
+        <div>
+          <h1 style={{ fontSize: '1.3rem' }}>Super Admin</h1>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vista global de la plataforma</p>
+        </div>
       </div>
 
-      {tab === 'overview' && (
-        <>
-          {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            {[
-              { icon: <Building2 size={22} />, label: 'Gimnasios Activos', value: d.platform.total_gyms, color: 'var(--color-primary)', suffix: '' },
-              { icon: <Users size={22} />, label: 'Clientes Totales', value: d.platform.total_clients.toLocaleString(), color: 'var(--color-accent)', suffix: '' },
-              { icon: <DollarSign size={22} />, label: 'MRR (MXN)', value: `$${(d.platform.mrr_mxn / 1000).toFixed(0)}k`, color: '#FFD700', suffix: '' },
-              { icon: <TrendingUp size={22} />, label: 'Adherencia Plataforma', value: d.platform.avg_adherence, color: 'var(--color-secondary)', suffix: '%' },
-            ].map((kpi, i) => (
-              <div key={i} className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ color: kpi.color, marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>{kpi.icon}</div>
-                <div style={{ fontSize: '2rem', fontWeight: '800', fontFamily: 'var(--font-heading)', color: kpi.color }}>{kpi.value}{kpi.suffix}</div>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '0.25rem' }}>{kpi.label}</p>
-              </div>
-            ))}
-          </div>
+      {/* Tabs */}
+      <div style={{ padding: '0 var(--s4)', marginBottom: 'var(--s4)' }}>
+        <div style={{ display: 'flex', gap: 'var(--s2)', background: 'var(--bg-raised)', borderRadius: 'var(--r-md)', padding: '3px' }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              id={`admin-tab-${t.id}`}
+              onClick={() => setTab(t.id)}
+              style={{
+                flex: 1, padding: 'var(--s2)', borderRadius: 'var(--r-sm)', border: 'none',
+                background: tab === t.id ? 'var(--bg-card)' : 'transparent',
+                color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.8rem',
+                cursor: 'pointer', transition: 'all .2s',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* Distribución de planes */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ marginBottom: '1.25rem', fontSize: '1rem' }}>📦 Distribución por Plan</h3>
-            {['enterprise', 'profesional', 'basico'].map(plan => {
-              const count = d.gyms.filter(g => g.plan === plan).length;
-              const pct = Math.round(count / d.gyms.length * 100);
-              return (
-                <div key={plan} style={{ marginBottom: '1rem' }}>
-                  <div className="flex-between" style={{ marginBottom: '0.35rem' }}>
-                    <span style={{ fontSize: '0.85rem', textTransform: 'capitalize', fontWeight: '600' }}>{plan}</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{count} gyms ({pct}%)</span>
+      <div style={{ padding: '0 var(--s4)', paddingBottom: 'var(--s8)' }}>
+
+        {/* ── Overview ── */}
+        {tab === 'overview' && (
+          <div className="stagger">
+            {/* KPIs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--s2)', marginBottom: 'var(--s4)' }}>
+              {[
+                { icon: <Building2 size={18} />, label: 'Gimnasios', value: p.total_gyms, color: 'var(--brand)' },
+                { icon: <Users size={18} />, label: 'Clientes', value: p.total_clients.toLocaleString(), color: 'var(--blue)' },
+                { icon: <DollarSign size={18} />, label: 'MRR', value: `$${(p.mrr_mxn / 1000).toFixed(0)}k`, color: 'var(--amber)' },
+                { icon: <TrendingUp size={18} />, label: 'Adherencia', value: `${p.avg_adherence}%`, color: 'var(--green)' },
+              ].map(k => (
+                <div key={k.label} className="card anim-fade-up" style={{ padding: 'var(--s4)' }}>
+                  <div style={{ color: k.color, marginBottom: 'var(--s2)' }}>{k.icon}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.5rem', color: k.color, lineHeight: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Plan distribution */}
+            <div className="card anim-fade-up">
+              <p style={{ fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 'var(--s4)' }}>Distribución por plan</p>
+              {['enterprise', 'profesional', 'basico'].map(plan => {
+                const count = gyms.filter(g => g.plan === plan).length;
+                const pct = Math.round(count / gyms.length * 100);
+                return (
+                  <div key={plan} style={{ marginBottom: 'var(--s4)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize' }}>{plan}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{count} gyms · {pct}%</span>
+                    </div>
+                    <div className="progress-track">
+                      <div className="progress-bar" style={{ width: `${pct}%`, background: PLAN_COLOR[plan] }} />
+                    </div>
                   </div>
-                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: PLAN_COLOR[plan], borderRadius: '99px' }} />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Gyms ── */}
+        {tab === 'gyms' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s2)' }}>
+            {gyms.map(gym => {
+              const st = STATUS_MAP[gym.status] || STATUS_MAP.inactive;
+              return (
+                <div key={gym.id} className="card" style={{ padding: 'var(--s4)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--s3)' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)', marginBottom: 4 }}>
+                        <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{gym.nombre}</p>
+                        <span className="badge" style={{ background: `${PLAN_COLOR[gym.plan]}20`, color: PLAN_COLOR[gym.plan], border: `1px solid ${PLAN_COLOR[gym.plan]}40`, padding: '2px 8px', fontSize: '0.65rem' }}>
+                          {gym.plan}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 'var(--s3)', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          <Users size={11} style={{ display: 'inline', marginRight: 3 }} />
+                          {gym.clientes} clientes
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: gym.adherencia >= 85 ? 'var(--green)' : gym.adherencia >= 75 ? 'var(--amber)' : 'var(--red)', fontWeight: 600 }}>
+                          <TrendingUp size={11} style={{ display: 'inline', marginRight: 3 }} />
+                          {gym.adherencia}% adh.
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: st.color, fontWeight: 600 }}>
+                          ● {st.label}
+                        </span>
+                      </div>
+                    </div>
+                    <button id={`admin-view-${gym.id}`} className="btn-icon" style={{ width: 34, height: 34, flexShrink: 0 }}>
+                      <ChevronRight size={15} />
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
-        </>
-      )}
+        )}
 
-      {tab === 'gyms' && (
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <h3 style={{ marginBottom: '1.25rem', fontSize: '1rem' }}>🏢 Todos los Gimnasios ({d.gyms.length})</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead><tr style={{ color: 'var(--color-text-muted)', borderBottom: '1px solid var(--glass-border)' }}>
-                {['Nombre', 'Plan', 'Clientes', 'Adherencia', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {d.gyms.map(gym => (
-                  <tr key={gym.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '1rem', fontWeight: '600' }}>{gym.nombre}</td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontSize: '0.72rem', padding: '0.25em 0.75em', borderRadius: '20px', background: `${PLAN_COLOR[gym.plan]}20`, color: PLAN_COLOR[gym.plan], fontWeight: '700', textTransform: 'capitalize' }}>{gym.plan}</span>
-                    </td>
-                    <td style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>{gym.clientes}</td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ color: gym.adherencia >= 85 ? 'var(--color-secondary)' : gym.adherencia >= 75 ? '#FFB300' : 'var(--color-primary)', fontWeight: '700' }}>{gym.adherencia}%</span>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontSize: '0.72rem', padding: '0.25em 0.75em', borderRadius: '20px', background: `${STATUS_COLOR[gym.status]}15`, color: STATUS_COLOR[gym.status], fontWeight: '700' }}>{gym.status}</span>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <button id={`admin-view-${gym.id}`} style={{ fontSize: '0.78rem', padding: '0.3rem 0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'transparent', color: 'var(--color-text-muted)', cursor: 'pointer' }}>Ver Detalle</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        {/* ── Billing ── */}
+        {tab === 'billing' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
+            <div className="card">
+              <p style={{ fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 'var(--s4)' }}>Resumen de ingresos</p>
+              {[
+                { label: 'MRR Total', val: `$${p.mrr_mxn.toLocaleString()} MXN` },
+                { label: 'ARR (proyectado)', val: `$${(p.mrr_mxn * 12).toLocaleString()} MXN` },
+                { label: 'Churn Rate', val: `${p.churn_rate}%` },
+                { label: 'Pagos pendientes', val: `${gyms.filter(g => g.status === 'past_due').length} gyms` },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--s3) 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{item.label}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{item.val}</span>
+                </div>
+              ))}
+            </div>
 
-      {tab === 'billing' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          <div className="glass-panel" style={{ padding: '1.75rem' }}>
-            <h3 style={{ marginBottom: '1.25rem', fontSize: '1rem' }}>💳 Resumen de Ingresos</h3>
-            {[{ label: 'MRR Total', val: `$${d.platform.mrr_mxn.toLocaleString()} MXN` }, { label: 'ARR (proyectado)', val: `$${(d.platform.mrr_mxn * 12).toLocaleString()} MXN` }, { label: 'Churn Rate', val: `${d.platform.churn_rate}%` }, { label: 'Gyms en Past Due', val: d.gyms.filter(g => g.status === 'past_due').length }].map(item => (
-              <div key={item.label} className="flex-between" style={{ padding: '0.85rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>{item.label}</span>
-                <span style={{ fontWeight: '700' }}>{item.val}</span>
+            {/* Past due alerts */}
+            <div>
+              <div className="section-header">
+                <span className="section-title">Pagos con problema</span>
+                <AlertCircle size={14} color="var(--red)" />
               </div>
-            ))}
+              {gyms.filter(g => g.status === 'past_due').map(gym => (
+                <div key={gym.id} className="card" style={{ borderColor: 'rgba(255,75,85,0.2)', background: 'rgba(255,75,85,0.04)', padding: 'var(--s4)', marginBottom: 'var(--s2)' }}>
+                  <p style={{ fontWeight: 700, marginBottom: 4 }}>{gym.nombre}</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--s3)' }}>Plan {gym.plan} · Pago pendiente</p>
+                  <button className="btn btn-danger btn-sm">Contactar dueño</button>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="glass-panel" style={{ padding: '1.75rem' }}>
-            <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-              <AlertCircle size={18} color="#FF5A00" /> Pagos con Problema
-            </h3>
-            {d.gyms.filter(g => g.status === 'past_due').map(gym => (
-              <div key={gym.id} style={{ padding: '0.85rem', background: 'rgba(255,90,0,0.07)', borderRadius: '10px', border: '1px solid rgba(255,90,0,0.2)', marginBottom: '0.75rem' }}>
-                <p style={{ fontWeight: '700', marginBottom: '0.25rem' }}>{gym.nombre}</p>
-                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Plan {gym.plan} · Pago pendiente</p>
-                <button style={{ marginTop: '0.5rem', fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: '8px', border: 'none', background: 'rgba(255,90,0,0.2)', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: '700' }}>Contactar Dueño</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
