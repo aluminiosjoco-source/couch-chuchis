@@ -1,6 +1,9 @@
 import React from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Users, CheckCircle, Dumbbell, ShieldCheck, LogOut, Wand2, UserCog } from 'lucide-react';
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
+import {
+  LayoutDashboard, Users, Dumbbell, CheckCircle2,
+  ShieldCheck, LogOut, ChevronRight, Activity
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function DashboardLayout() {
@@ -8,65 +11,126 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const allNavItems = [
-    { name: 'Dashboard Trainer', path: '/trainer', icon: <Users size={20} />, roles: ['trainer', 'gym_owner', 'super_admin'] },
-    { name: 'Entrenadores', path: '/trainer/entrenadores', icon: <UserCog size={20} />, roles: ['gym_owner', 'super_admin'] },
-    { name: 'Editor de Rutinas', path: '/trainer/rutinas', icon: <Wand2 size={20} />, roles: ['trainer', 'gym_owner', 'super_admin'] },
-    { name: 'Dashboard Cliente', path: '/client', icon: <Activity size={20} />, roles: ['client', 'trainer', 'gym_owner', 'super_admin'] },
-    { name: 'Entrenamiento Live', path: '/client/workout', icon: <Dumbbell size={20} />, roles: ['client', 'trainer', 'gym_owner', 'super_admin'] },
-    { name: 'Check-In Semanal', path: '/check-in', icon: <CheckCircle size={20} />, roles: ['client', 'trainer', 'gym_owner', 'super_admin'] },
-    { name: 'Super Admin', path: '/admin', icon: <ShieldCheck size={20} />, roles: ['super_admin'] },
-  ];
+  const role = user?.rol;
 
-  const navItems = allNavItems.filter(item =>
-    !user || item.roles.includes(user.rol)
-  );
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  // Navigation items per role
+  const navMap = {
+    client: [
+      { path: '/client', icon: LayoutDashboard, label: 'Inicio' },
+      { path: '/client/workout', icon: Dumbbell, label: 'Rutina' },
+      { path: '/client/checkin', icon: CheckCircle2, label: 'Check-In' },
+    ],
+    trainer: [
+      { path: '/trainer', icon: LayoutDashboard, label: 'Clientes' },
+      { path: '/trainer/rutinas', icon: Dumbbell, label: 'Rutinas' },
+    ],
+    gym_owner: [
+      { path: '/trainer', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/trainer/entrenadores', icon: Users, label: 'Equipo' },
+      { path: '/trainer/rutinas', icon: Dumbbell, label: 'Rutinas' },
+    ],
+    super_admin: [
+      { path: '/admin', icon: ShieldCheck, label: 'Admin' },
+      { path: '/trainer', icon: LayoutDashboard, label: 'Trainers' },
+    ],
   };
 
+  const navItems = navMap[role] || navMap.trainer;
+
+  const isActive = (path) => {
+    if (path === location.pathname) return true;
+    if (path !== '/' && location.pathname.startsWith(path) && path.length > 1) return true;
+    return false;
+  };
+
+  const handleLogout = () => { logout(); navigate('/'); };
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', maxWidth: '100%' }}>
-      {/* Sidebar */}
-      <aside className="glass-panel animate-fade-in" style={{ width: '260px', margin: '20px 0 20px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg-base)' }}>
+      {/* ── Top App Bar ── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        height: '60px',
+        background: 'rgba(13,15,18,0.9)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center',
+        padding: '0 var(--s4)',
+        gap: 'var(--s3)',
+      }}>
         {/* Logo */}
-        <h2 className="text-gradient" style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.4rem' }}>
-          <Activity size={24} color="var(--color-primary)" /> Coach SaaS
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '8px',
+            background: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Activity size={18} color="#fff" />
+          </div>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' }}>
+            Coach<span style={{ color: 'var(--brand)' }}>SaaS</span>
+          </span>
+        </div>
+
+        {/* User pill */}
         {user && (
-          <div style={{ marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)' }}>
-            <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>{user.nombre}</p>
-            <span style={{ fontSize: '0.65rem', padding: '0.2em 0.6em', borderRadius: '20px', background: 'rgba(255,90,0,0.15)', color: 'var(--color-primary)', fontWeight: '700', textTransform: 'capitalize' }}>{user.rol?.replace('_', ' ')}</span>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--s2)',
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-full)', padding: '4px 12px 4px 4px',
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--brand), var(--amber))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem',
+              color: '#fff', flexShrink: 0,
+            }}>
+              {user.nombre?.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ lineHeight: 1 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.nombre?.split(' ')[0]}
+              </div>
+              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                {user.rol?.replace('_', ' ')}
+              </div>
+            </div>
           </div>
         )}
 
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path) && item.path.length > 1);
-            return (
-              <Link key={item.name} to={item.path}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1rem', borderRadius: '12px', textDecoration: 'none', color: isActive ? '#fff' : 'var(--color-text-muted)', background: isActive ? 'linear-gradient(90deg, rgba(255,90,0,0.15) 0%, transparent 100%)' : 'transparent', borderLeft: isActive ? '3px solid var(--color-primary)' : '3px solid transparent', transition: 'all 0.2s ease', fontWeight: isActive ? '600' : '400', fontSize: '0.88rem' }}>
-                {item.icon} {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-
         {/* Logout */}
-        <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--glass-border)', marginTop: 'auto' }}>
-          <button onClick={handleLogout} id="sidebar-logout"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1rem', borderRadius: '12px', cursor: 'pointer', background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '0.88rem', transition: 'color 0.2s' }}>
-            <LogOut size={18} /> Cerrar Sesión
-          </button>
-        </div>
-      </aside>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: 'none', border: 'none',
+            color: 'var(--text-muted)', padding: '6px',
+            borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center',
+            transition: 'color .2s',
+          }}
+          title="Cerrar sesión"
+        >
+          <LogOut size={18} />
+        </button>
+      </header>
 
-      {/* Main Content */}
-      <main style={{ flex: 1, padding: '20px 36px', overflowY: 'auto', position: 'relative' }}>
+      {/* ── Main Content ── */}
+      <main style={{ paddingBottom: 'calc(var(--nav-h) + var(--safe-bottom) + 16px)' }}>
         <Outlet />
       </main>
+
+      {/* ── Bottom Navigation ── */}
+      <nav className="bottom-nav">
+        <div className="bottom-nav__inner">
+          {navItems.map(({ path, icon: Icon, label }) => (
+            <Link key={path} to={path} className={`bottom-nav__item ${isActive(path) ? 'active' : ''}`}>
+              <span className="bottom-nav__icon">
+                <Icon size={22} strokeWidth={isActive(path) ? 2.2 : 1.8} />
+              </span>
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

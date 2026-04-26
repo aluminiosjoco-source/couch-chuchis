@@ -15,6 +15,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import WorkoutTracker from './pages/Client/WorkoutTracker';
 import RoutineEditor from './pages/Trainer/RoutineEditor';
 import ClientProfile from './pages/Trainer/ClientProfile';
+import ClientPlanEditor from './pages/Trainer/ClientPlanEditor';
 import TrainerDashboard from './pages/TrainerDashboard';
 import TrainersPage from './pages/GymOwner/TrainersPage';
 
@@ -52,6 +53,7 @@ function AuthGate() {
         <Route path="trainer" element={<TrainerDashboard />} />
         <Route path="trainer/rutinas" element={<RoutineEditor />} />
         <Route path="trainer/clients/:id" element={<ClientProfile />} />
+        <Route path="trainer/clients/:id/plan" element={<ClientPlanEditor />} />
         <Route path="trainer/entrenadores" element={<TrainersPage />} />
         
         {/* Client Routes */}
